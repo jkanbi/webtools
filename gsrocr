@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Gas Rate Calculator with OCR</title>
+    <script src="https://unpkg.com/tesseract.js@v4.1.1/dist/tesseract.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .camera-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .camera-container {
+            border: 3px solid #ddd;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            background: #f8f9fa;
+        }
+
+        .camera-container h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .video-container {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        video {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 10px;
+            background: #000;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .camera-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .camera-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+        }
+
+        .camera-btn.stop {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        }
+
+        .camera-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .reading-display {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .reading-display h4 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+        }
+
+        .reading-display p {
+            color: #1b5e20;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background: #ccc;
+        }
+
+        .status-indicator.active {
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .calculation-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .calculation-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-field label {
+            color: #555;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .input-field input {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .live-results {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .live-results h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .result-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .result-item h3 {
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .result-item p {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .result-item .average {
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+
+        .history-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+        }
+
+        .history-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .history-table th {
+            background: #4facfe;
+            color: white;
+            font-weight: 600;
+        }
+
+        .history-table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .camera-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Real-Time Gas Rate Calculator</h1>
+            <p>Live camera capture with continuous OCR and gas rate calculation</p>
+        </div>
+
+        <div class="main-content">
+            <div class="camera-section">
+                <div class="camera-container">
+                    <h3>Camera 1 - First Reading</h3>
+                    <div class="video-container">
+                        <video id="video1" autoplay muted></video>
+                    </div>
+                    <div class="camera-controls">
+                        <button class="camera-btn" id="startBtn1" onclick="startCamera(1)">Start Camera</button>
+                        <button class="camera-btn stop" id="stopBtn1" onclick="stopCamera(1)" disabled>Stop Camera</button>
+                    </div>
+                    <div class="reading-display" id="reading1">
+                        <h4><span class="status-indicator" id="status1"></span>Current Reading</h4>
+                        <p id="currentReading1">-</p>
+                    </div>
+                </div>
+
+                <div class="camera-container">
+                    <h3>Camera 2 - Second Reading</h3>
+                    <div class="video-container">
+                        <video id="video2" autoplay muted></video>
+                    </div>
+                    <div class="camera-controls">
+                        <button class="camera-btn" id="startBtn2" onclick="startCamera(2)">Start Camera</button>
+                        <button class="camera-btn stop" id="stopBtn2" onclick="stopCamera(2)" disabled>Stop Camera</button>
+                    </div>
+                    <div class="reading-display" id="reading2">
+                        <h4><span class="status-indicator" id="status2"></span>Current Reading</h4>
+                        <p id="currentReading2">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Processing image with OCR...</p>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="calculation-section">
+                <h2>Calculation Parameters</h2>
+                <div class="input-group">
+                    <div class="input-field">
+                        <label for="cvValue">Calorific Value (kW)</label>
+                        <input type="number" id="cvValue" placeholder="Enter calorific value" value="10.77" step="0.01">
+                    </div>
+                    <div class="input-field">
+                        <label for="updateInterval">Update Interval (seconds)</label>
+                        <input type="number" id="updateInterval" placeholder="Update interval" value="5" min="1" max="60">
+                    </div>
+                </div>
+            </div>
+
+            <div class="live-results" id="liveResults" style="display: none;">
+                <h2>Live Gas Rate Results</h2>
+                <div class="results-grid">
+                    <div class="result-item">
+                        <h3>Current Gas Used (m³ in 2 min)</h3>
+                        <p id="liveGasUsed">-</p>
+                    </div>
+                    <div class="result-item">
+                        <h3>Current Gross Input (kW)</h3>
+                        <p id="liveGrossInput">-</p>
+                    </div>
+                    <div class="result-item">
+                        <h3>Average Gas Rate (m³/hr)</h3>
+                        <p id="liveAverageRate">-</p>
+                        <p class="average" id="liveAverageRateDetails">-</p>
+                    </div>
+                    <div class="result-item">
+                        <h3>Average Gross Input (kW)</h3>
+                        <p id="liveAverageInput">-</p>
+                        <p class="average" id="liveAverageInputDetails">-</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="history-section">
+                <h2>Reading History</h2>
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Reading 1</th>
+                            <th>Reading 2</th>
+                            <th>Gas Used (m³)</th>
+                            <th>Gross Input (kW)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <tr>
+                            <td colspan="5">No readings yet</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let streams = { 1: null, 2: null };
+        let currentReadings = { 1: null, 2: null };
+        let readingHistory = [];
+        let updateInterval = null;
+        let isProcessing = false;
+
+        async function startCamera(cameraNum) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                
+                const video = document.getElementById(`video${cameraNum}`);
+                video.srcObject = stream;
+                streams[cameraNum] = stream;
+                
+                document.getElementById(`startBtn${cameraNum}`).disabled = true;
+                document.getElementById(`stopBtn${cameraNum}`).disabled = false;
+                document.getElementById(`status${cameraNum}`).classList.add('active');
+                
+                // Start continuous OCR processing
+                startContinuousOCR(cameraNum);
+                
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                showError(`Error accessing camera ${cameraNum}: ${error.message}`);
+            }
+        }
+
+        function stopCamera(cameraNum) {
+            if (streams[cameraNum]) {
+                streams[cameraNum].getTracks().forEach(track => track.stop());
+                streams[cameraNum] = null;
+                
+                document.getElementById(`startBtn${cameraNum}`).disabled = false;
+                document.getElementById(`stopBtn${cameraNum}`).disabled = true;
+                document.getElementById(`status${cameraNum}`).classList.remove('active');
+                document.getElementById(`currentReading${cameraNum}`).textContent = '-';
+            }
+        }
+
+        async function startContinuousOCR(cameraNum) {
+            const video = document.getElementById(`video${cameraNum}`);
+            const updateIntervalMs = parseInt(document.getElementById('updateInterval').value) * 1000;
+            
+            // Wait for video to be ready
+            await new Promise(resolve => {
+                video.addEventListener('loadedmetadata', resolve, { once: true });
+            });
+            
+            // Start periodic OCR
+            setInterval(async () => {
+                if (streams[cameraNum] && !isProcessing) {
+                    await captureAndProcessFrame(cameraNum);
+                }
+            }, updateIntervalMs);
+        }
+
+        async function captureAndProcessFrame(cameraNum) {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            const video = document.getElementById(`video${cameraNum}`);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            try {
+                const imageData = canvas.toDataURL('image/jpeg', 0.8);
+                await processImageWithOCR(imageData, cameraNum);
+            } catch (error) {
+                console.error('OCR Error:', error);
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        async function processImageWithOCR(imageData, cameraNum) {
+            try {
+                const worker = await Tesseract.createWorker();
+                await worker.loadLanguage('eng');
+                await worker.initialize('eng');
+                
+                // Configure OCR for better number recognition
+                await worker.setParameters({
+                    tessedit_char_whitelist: '0123456789.',
+                    tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
+                });
+
+                const result = await worker.recognize(imageData);
+                await worker.terminate();
+
+                // Extract numbers from the result
+                const numbers = extractNumbers(result.data.text);
+                
+                if (numbers.length > 0) {
+                    currentReadings[cameraNum] = numbers[0];
+                    document.getElementById(`currentReading${cameraNum}`).textContent = numbers[0].toFixed(5);
+                    
+                    // Calculate gas rate if both readings are available
+                    if (currentReadings[1] !== null && currentReadings[2] !== null) {
+                        calculateLiveGasRate();
+                    }
+                }
+            } catch (error) {
+                console.error('OCR Error:', error);
+            }
+        }
+
+        function extractNumbers(text) {
+            const numberPattern = /(\d+(?:\.\d+)?)/g;
+            const matches = text.match(numberPattern);
+            
+            if (matches) {
+                return matches.map(match => parseFloat(match)).filter(num => !isNaN(num));
+            }
+            
+            return [];
+        }
+
+        function calculateLiveGasRate() {
+            const cvValue = parseFloat(document.getElementById('cvValue').value);
+            const firstReading = currentReadings[1];
+            const secondReading = currentReadings[2];
+            
+            if (!cvValue || isNaN(cvValue) || secondReading <= firstReading) {
+                return;
+            }
+
+            const gasUsed = secondReading - firstReading;
+            const grossInput = (gasUsed * 30) * cvValue;
+            
+            // Add to history
+            const timestamp = new Date().toLocaleTimeString();
+            readingHistory.push({
+                timestamp,
+                reading1: firstReading,
+                reading2: secondReading,
+                gasUsed,
+                grossInput
+            });
+            
+            // Keep only last 20 readings
+            if (readingHistory.length > 20) {
+                readingHistory.shift();
+            }
+            
+            // Update live results
+            document.getElementById('liveGasUsed').textContent = gasUsed.toFixed(5);
+            document.getElementById('liveGrossInput').textContent = grossInput.toFixed(3);
+            
+            // Calculate averages
+            if (readingHistory.length > 1) {
+                const avgGasUsed = readingHistory.reduce((sum, reading) => sum + reading.gasUsed, 0) / readingHistory.length;
+                const avgGrossInput = readingHistory.reduce((sum, reading) => sum + reading.grossInput, 0) / readingHistory.length;
+                const avgHourlyRate = avgGasUsed * 30;
+                
+                document.getElementById('liveAverageRate').textContent = avgHourlyRate.toFixed(3);
+                document.getElementById('liveAverageRateDetails').textContent = `(${readingHistory.length} readings)`;
+                document.getElementById('liveAverageInput').textContent = avgGrossInput.toFixed(3);
+                document.getElementById('liveAverageInputDetails').textContent = `(${readingHistory.length} readings)`;
+            }
+            
+            document.getElementById('liveResults').style.display = 'block';
+            updateHistoryTable();
+        }
+
+        function updateHistoryTable() {
+            const tbody = document.getElementById('historyTableBody');
+            tbody.innerHTML = '';
+            
+            if (readingHistory.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5">No readings yet</td></tr>';
+                return;
+            }
+            
+            readingHistory.slice(-10).reverse().forEach(reading => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${reading.timestamp}</td>
+                    <td>${reading.reading1.toFixed(5)}</td>
+                    <td>${reading.reading2.toFixed(5)}</td>
+                    <td>${reading.gasUsed.toFixed(5)}</td>
+                    <td>${reading.grossInput.toFixed(3)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update interval change handler
+            document.getElementById('updateInterval').addEventListener('change', function() {
+                // Restart cameras if they're running
+                if (streams[1]) {
+                    stopCamera(1);
+                    startCamera(1);
+                }
+                if (streams[2]) {
+                    stopCamera(2);
+                    startCamera(2);
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
