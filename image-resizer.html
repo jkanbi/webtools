@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Multi-Image Drag & Drop Resizer</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      background: #f4f8fb;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 32px;
+      color: #2d3a4b;
+      letter-spacing: 1px;
+    }
+    #drop-area {
+      border: 2.5px dashed #7db7e8;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 520px;
+      margin: 32px auto 16px auto;
+      padding: 36px 24px;
+      text-align: center;
+      background: #fff;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(125,183,232,0.08);
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    #drop-area.highlight {
+      background: #eaf6ff;
+      box-shadow: 0 6px 24px rgba(125,183,232,0.18);
+    }
+    #file-input { display: none; }
+    #preview-container {
+      margin: 0 auto;
+      text-align: center;
+      max-width: 600px;
+    }
+    .button-row {
+      margin: 18px 0 24px 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    #resize-percent, #format-select {
+      padding: 7px 16px;
+      border-radius: 6px;
+      border: 1.5px solid #b3c6d9;
+      background: #fafdff;
+      font-size: 16px;
+      margin: 0 4px;
+      transition: border 0.2s;
+    }
+    #resize-percent:focus, #format-select:focus {
+      border: 1.5px solid #7db7e8;
+      outline: none;
+    }
+    #reset-btn {
+      background: #f44336;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(244,67,54,0.08);
+    }
+    #reset-btn:hover {
+      background: #d32f2f;
+    }
+    .image-item {
+      margin: 18px auto;
+      padding: 18px 12px 12px 12px;
+      border: 1.5px solid #e3eaf1;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(44,62,80,0.06);
+      max-width: 340px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: box-shadow 0.2s;
+    }
+    .image-item img {
+      max-width: 100%;
+      max-height: 180px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 6px rgba(44,62,80,0.08);
+    }
+    .download-btn {
+      margin: 5px;
+      padding: 7px 18px;
+      font-size: 15px;
+      background: #2196f3;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(33,150,243,0.08);
+    }
+    .download-btn:hover {
+      background: #1769aa;
+    }
+    #image-list {
+      margin: 20px auto 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 18px;
+      min-height: 40px;
+    }
+    @media (max-width: 600px) {
+      #drop-area, #preview-container {
+        width: 98%;
+        padding: 12px;
+      }
+      .image-item {
+        max-width: 98vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Multi-Image Drag & Drop Resizer</h1>
+  <div id="drop-area">
+    <p>Drag & drop images here or <u>click to select</u></p>
+    <input type="file" id="file-input" accept="image/*" multiple>
+  </div>
+  <div id="preview-container">
+    <div class="button-row">
+      <select id="resize-percent">
+        <option value="25">25%</option>
+        <option value="50">50%</option>
+        <option value="75">75%</option>
+      </select>
+      <span>%</span>
+      <select id="format-select">
+        <option value="png">PNG</option>
+        <option value="jpeg" selected>JPEG</option>
+        <option value="webp">WebP</option>
+      </select>
+      <button id="reset-btn">Reset</button>
+    </div>
+    <div id="image-list"></div>
+  </div>
+  <script>
+    const dropArea = document.getElementById('drop-area');
+    const fileInput = document.getElementById('file-input');
+    const imageList = document.getElementById('image-list');
+    const resizePercent = document.getElementById('resize-percent');
+    const formatSelect = document.getElementById('format-select');
+    let currentImages = [];
+
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, preventDefaults, false);
+    });
+    function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+    // Highlight drop area
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropArea.addEventListener(eventName, highlight, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, unhighlight, false);
+    });
+    function highlight() { dropArea.classList.add('highlight'); }
+    function unhighlight() { dropArea.classList.remove('highlight'); }
+
+    // Handle dropped files
+    dropArea.addEventListener('drop', handleDrop, false);
+    function handleDrop(e) {
+      const files = e.dataTransfer.files;
+      handleFiles(files);
+    }
+
+    // Handle file selection via input
+    fileInput.addEventListener('change', function(e) {
+      handleFiles(e.target.files);
+    });
+
+    // Make drop area clickable for file selection
+    dropArea.addEventListener('click', function() {
+      fileInput.click();
+    });
+
+    // Process files
+    function handleFiles(files) {
+      if (files.length === 0) return;
+      imageList.innerHTML = '';
+      currentImages = [];
+      let i = 0;
+      function processNext() {
+        if (i >= files.length) return;
+        const file = files[i];
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.onload = function() {
+              const item = document.createElement('div');
+              item.className = 'image-item';
+              item.dataset.index = currentImages.length;
+              item.innerHTML = `
+                <img src="${e.target.result}" alt="Preview">
+                <div class="button-row">
+                  <button class="download-btn" data-index="${currentImages.length}">Download</button>
+                </div>
+              `;
+              imageList.appendChild(item);
+              // Prepare for resizing
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              const percent = Number(resizePercent.value) / 100;
+              const format = formatSelect.value;
+              const width = img.naturalWidth * percent;
+              const height = img.naturalHeight * percent;
+              canvas.width = width;
+              canvas.height = height;
+              ctx.drawImage(img, 0, 0, width, height);
+              // Update preview
+              item.querySelector('img').src = canvas.toDataURL(`image/${format}`);
+              // Store for possible further use
+              currentImages.push({
+                img: img,
+                canvas: canvas,
+                ctx: ctx,
+                name: file.name.replace(/\.[^/.]+$/, '')
+              });
+              // Automatically trigger download
+              const a = document.createElement('a');
+              a.href = canvas.toDataURL(`image/${format}`);
+              a.download = `${file.name.replace(/\.[^/.]+$/, '')}_resized.${format}`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              // Process next file after a short delay
+              i++;
+              setTimeout(processNext, 300);
+            };
+          };
+          reader.readAsDataURL(file);
+        } else {
+          i++;
+          processNext();
+        }
+      }
+      processNext();
+    }
+
+    // Download individual image
+    imageList.addEventListener('click', function(e) {
+      if (e.target.classList.contains('download-btn')) {
+        const index = parseInt(e.target.dataset.index);
+        if (index >= 0 && index < currentImages.length) {
+          const format = formatSelect.value;
+          const canvas = currentImages[index].canvas;
+          const name = currentImages[index].name;
+          const a = document.createElement('a');
+          a.href = canvas.toDataURL(`image/${format}`);
+          a.download = `${name}_resized.${format}`;
+          a.click();
+        }
+      }
+    });
+
+    // Add reset button logic
+    const resetBtn = document.getElementById('reset-btn');
+    resetBtn.addEventListener('click', function() {
+      imageList.innerHTML = '';
+      currentImages = [];
+      fileInput.value = '';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Labeller</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 800px; margin: 40px auto; background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+    h1 { text-align: center; }
+    .drop-area {
+      border: 2px dashed #888;
+      border-radius: 10px;
+      padding: 40px;
+      text-align: center;
+      color: #888;
+      margin-bottom: 24px;
+      background: #fafafa;
+      transition: border-color 0.2s;
+    }
+    .drop-area.dragover { border-color: #333; color: #333; }
+    .drop-area.disabled { pointer-events: none; }
+    .inputs { display: flex; gap: 12px; justify-content: center; margin-bottom: 24px; align-items: center; flex-wrap: wrap; }
+    .inputs input { width: 80px; padding: 8px; border-radius: 20px; border: 1px solid #ccc; text-align: center; }
+    .csv-buttons { display: flex; gap: 8px; margin-left: 16px; }
+    .csv-btn { 
+      background: #666; 
+      color: #fff; 
+      border: none; 
+      border-radius: 16px; 
+      padding: 6px 12px; 
+      cursor: pointer; 
+      font-size: 12px;
+      transition: background 0.2s; 
+    }
+    .csv-btn:hover { background: #888; }
+    .images { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; }
+    .image-block { display: flex; flex-direction: column; align-items: center; }
+    .image-block canvas { border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 8px; }
+    .download-btn { background: #222; color: #fff; border: none; border-radius: 20px; padding: 8px 18px; cursor: pointer; margin-top: 4px; transition: background 0.2s; }
+    .download-btn:hover { background: #444; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Image Labeller</h1>
+    <div class="inputs" style="margin-bottom:24px;">
+      <input type="text" maxlength="20" placeholder="Text 1" id="text1">
+      <input type="text" maxlength="20" placeholder="Text 2" id="text2">
+      <input type="text" maxlength="20" placeholder="Text 3" id="text3">
+      <input type="text" maxlength="20" placeholder="Text 4" id="text4">
+      <div class="csv-buttons">
+        <button class="csv-btn" id="importBtn">Import CSV</button>
+        <button class="csv-btn" id="exportBtn">Export CSV</button>
+        <input type="file" id="csvFileInput" accept=".csv" style="display:none">
+      </div>
+    </div>
+    <div class="drop-area" id="drop-area">
+      <span id="drop-area-message">Please enter text above first</span>
+      <input type="file" id="fileElem" multiple accept="image/*" style="display:none">
+    </div>
+    <div style="text-align:center; margin-bottom:24px;">
+      <button id="labelBtn" style="padding:10px 28px; border-radius:24px; background:#222; color:#fff; border:none; font-size:1rem; cursor:pointer;">Label Images</button>
+    </div>
+    <div class="images" id="images"></div>
+  </div>
+  <script>
+    const dropArea = document.getElementById('drop-area');
+    const fileElem = document.getElementById('fileElem');
+    const csvFileInput = document.getElementById('csvFileInput');
+    let files = [];
+    let isInitialRender = true; // Track if this is the first render after file selection
+    let renderTimeout = null; // For debouncing render calls
+
+    // Debounced render function to prevent excessive re-rendering
+    function debouncedRender() {
+      if (renderTimeout) {
+        clearTimeout(renderTimeout);
+      }
+      renderTimeout = setTimeout(() => {
+        renderImages();
+      }, 100); // 100ms delay
+    }
+
+    // CSV Export function
+    function exportToCSV() {
+      const texts = [
+        document.getElementById('text1').value.trim(),
+        document.getElementById('text2').value.trim(),
+        document.getElementById('text3').value.trim(),
+        document.getElementById('text4').value.trim()
+      ];
+      
+      const csvContent = "data:text/csv;charset=utf-8," + 
+        "Text1,Text2,Text3,Text4\n" +
+        texts.map(text => `"${text}"`).join(',');
+      
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "image_labels.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // CSV Import function
+    function importFromCSV(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const csv = e.target.result;
+        const lines = csv.split('\n');
+        if (lines.length >= 2) {
+          const values = lines[1].split(',').map(val => {
+            // Remove quotes and trim
+            return val.replace(/^"|"$/g, '').trim();
+          });
+          
+          // Update text fields
+          for (let i = 0; i < 4; i++) {
+            const textField = document.getElementById(`text${i + 1}`);
+            if (textField && values[i]) {
+              textField.value = values[i].substring(0, 20); // Ensure max 20 chars
+            }
+          }
+          
+          // Trigger image update
+          isInitialRender = false;
+          updateDropAreaState();
+          renderImages(); // Direct render for import
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Event listeners for CSV buttons
+    document.getElementById('exportBtn').addEventListener('click', exportToCSV);
+    document.getElementById('importBtn').addEventListener('click', () => {
+      csvFileInput.click();
+    });
+    csvFileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        importFromCSV(e.target.files[0]);
+      }
+    });
+
+    // Helper to check if at least one text field is filled
+    function atLeastOneTextFieldFilled() {
+      return [
+        document.getElementById('text1').value.trim(),
+        document.getElementById('text2').value.trim(),
+        document.getElementById('text3').value.trim(),
+        document.getElementById('text4').value.trim()
+      ].some(Boolean);
+    }
+
+    // Enable/disable drop area and file input based on text fields
+    function updateDropAreaState() {
+      const dropArea = document.getElementById('drop-area');
+      const fileElem = document.getElementById('fileElem');
+      const dropMsg = document.getElementById('drop-area-message');
+      if (atLeastOneTextFieldFilled()) {
+        dropArea.classList.remove('disabled');
+        dropArea.style.opacity = '1';
+        fileElem.disabled = false;
+        dropMsg.textContent = 'Drag & drop images here or click to select';
+      } else {
+        dropArea.classList.add('disabled');
+        dropArea.style.opacity = '0.5';
+        fileElem.disabled = true;
+        dropMsg.textContent = 'Please enter text above first';
+      }
+    }
+
+    // Initial state
+    updateDropAreaState();
+
+    // Listen for text input changes to update images live and drop area state
+    ['text1','text2','text3','text4'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        updateDropAreaState();
+        isInitialRender = false; // Mark as not initial render when text changes
+        debouncedRender(); // Use debounced render instead of direct render
+      });
+    });
+
+    // Prevent drag/click if not all text fields are filled
+    dropArea.addEventListener('click', (e) => {
+      if (!atLeastOneTextFieldFilled()) {
+        e.preventDefault();
+        alert('At least one text field must be filled before adding images.');
+        return;
+      }
+      fileElem.click();
+    });
+    dropArea.addEventListener('dragover', e => {
+      if (!atLeastOneTextFieldFilled()) {
+        e.preventDefault();
+        alert('At least one text field must be filled before adding images.');
+        return;
+      }
+      e.preventDefault();
+      dropArea.classList.add('dragover');
+    });
+    dropArea.addEventListener('dragleave', e => {
+      dropArea.classList.remove('dragover');
+    });
+    dropArea.addEventListener('drop', e => {
+      if (!atLeastOneTextFieldFilled()) {
+        e.preventDefault();
+        alert('At least one text field must be filled before adding images.');
+        return;
+      }
+      e.preventDefault();
+      dropArea.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    });
+    fileElem.addEventListener('change', e => {
+      if (!atLeastOneTextFieldFilled()) {
+        e.preventDefault();
+        alert('At least one text field must be filled before adding images.');
+        return;
+      }
+      handleFiles(e.target.files);
+    });
+
+    function handleFiles(selectedFiles) {
+      files = Array.from(selectedFiles).filter(f => f.type.startsWith('image/'));
+      if (files.length === 0) return;
+      isInitialRender = true; // Mark as initial render when new files are selected
+      renderImages();
+    }
+
+    // Renders all images with current text values
+    function renderImages() {
+      if (files.length === 0) {
+        document.getElementById('images').innerHTML = '';
+        return;
+      }
+      const texts = [
+        document.getElementById('text1').value.trim(),
+        document.getElementById('text2').value.trim(),
+        document.getElementById('text3').value.trim(),
+        document.getElementById('text4').value.trim()
+      ];
+      const imagesDiv = document.getElementById('images');
+      imagesDiv.innerHTML = '';
+      files.forEach((file, idx) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new window.Image();
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const width = img.width;
+            const height = img.height;
+            const circleSize = Math.max(48, Math.floor(width/8)) * 1.22; // Increase circle size by 22% (52% - 20%)
+            const margin = 12;
+            const totalWidth = width;
+            const totalHeight = height;
+            canvas.width = totalWidth;
+            canvas.height = totalHeight;
+            // Draw image
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Simple font size calculation - fixed size that works for 20 chars
+            let fontSize = Math.floor(circleSize / 4) * 0.518; // Simple 1/4 of circle size, then shrink by 48% (35% + 20%)
+            fontSize = Math.max(fontSize, 12); // Minimum 12px
+            fontSize = Math.min(fontSize, 24); // Maximum 24px
+            
+            // Draw circles with text overlayed on the image
+            const n = 4;
+            const circleY = height - Math.floor(circleSize/2) - 12; // 12px margin from bottom
+            const spacing = (width - (n * circleSize)) / (n+1);
+            for (let i = 0; i < n; i++) {
+              const x = spacing + i * (circleSize + spacing) + circleSize/2;
+              const y = circleY;
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(x, y, circleSize/2, 0, 2*Math.PI);
+              ctx.fillStyle = '#111';
+              ctx.shadowColor = '#0008';
+              ctx.shadowBlur = 6;
+              ctx.fill();
+              ctx.restore();
+              
+              // Simple text rendering - one word per line, max 3 words
+              let text = texts[i] || '';
+              if (text) {
+                // Limit to 20 characters
+                text = text.substring(0, 20);
+                
+                // Split into words and limit to 3 words
+                let words = text.split(' ').slice(0, 3);
+                
+                // Set text alignment
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = `bold ${fontSize}px Arial`;
+                ctx.fillStyle = '#fff';
+                
+                // Draw each word on its own line
+                let lineHeight = fontSize * 1.2;
+                let totalHeight = words.length * lineHeight;
+                let startY = y - (totalHeight - lineHeight) / 2;
+                
+                for (let j = 0; j < words.length; j++) {
+                  ctx.fillText(words[j], x, startY + j * lineHeight);
+                }
+              }
+            }
+            // Show result
+            const block = document.createElement('div');
+            block.className = 'image-block';
+            block.appendChild(canvas);
+            const dl = document.createElement('a');
+            dl.textContent = 'Download';
+            dl.className = 'download-btn';
+            dl.download = 'labelled-' + file.name;
+            dl.href = canvas.toDataURL('image/png');
+            block.appendChild(dl);
+            imagesDiv.appendChild(block);
+            // Only automatically trigger download on initial render
+            if (isInitialRender) {
+              setTimeout(() => {
+                dl.click();
+              }, 100);
+            }
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Optionally, hide the label button since it's not needed anymore
+    document.getElementById('labelBtn').style.display = 'none';
+  </script>
+</body>
+</html> 
