@@ -222,6 +222,7 @@
               const ctx = canvas.getContext('2d');
               const percent = Number(resizePercent.value) / 100;
               const format = formatSelect.value;
+              const ext = format === 'jpeg' ? 'jpg' : format;
               const width = img.naturalWidth * percent;
               const height = img.naturalHeight * percent;
               canvas.width = width;
@@ -239,7 +240,7 @@
               // Automatically trigger download
               const a = document.createElement('a');
               a.href = canvas.toDataURL(`image/${format}`);
-              a.download = `${file.name.replace(/\.[^/.]+$/, '')}_resized.${format}`;
+              a.download = `${file.name.replace(/\.[^/.]+$/, '')}_resized.${ext}`;
               document.body.appendChild(a);
               a.click();
               document.body.removeChild(a);
@@ -263,11 +264,12 @@
         const index = parseInt(e.target.dataset.index);
         if (index >= 0 && index < currentImages.length) {
           const format = formatSelect.value;
+          const ext = format === 'jpeg' ? 'jpg' : format;
           const canvas = currentImages[index].canvas;
           const name = currentImages[index].name;
           const a = document.createElement('a');
           a.href = canvas.toDataURL(`image/${format}`);
-          a.download = `${name}_resized.${format}`;
+          a.download = `${name}_resized.${ext}`;
           a.click();
         }
       }
