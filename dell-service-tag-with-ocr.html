@@ -1,0 +1,252 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dell Service Tag Lookup</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+        .container {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007db8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:hover {
+            background-color: #005f8d;
+        }
+        .error {
+            color: red;
+            font-size: 14px;
+            margin: 5px 0;
+            text-align: center;
+        }
+        #videoContainer {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            aspect-ratio: 4/3;
+            background-color: #000;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #ocrOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #007db8;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+        #ocrResult {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            input, button {
+                font-size: 14px;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 style="text-align: center; font-size: 18px;">Dell Service Tag Lookup</h2>
+        <input type="text" id="serviceTag" placeholder="Enter Service Tag or Express Service Code">
+        <button onclick="lookupServiceTag()">Lookup Support Page</button>
+        <button id="startCamera" onclick="startCamera()">Start Camera OCR</button>
+        <button id="stopCamera" onclick="stopCamera()" style="display: none;">Stop Camera</button>
+        <div id="videoContainer" style="display: none;">
+            <video id="video" autoplay playsinline></video>
+            <div id="ocrOverlay"></div>
+            <div id="ocrResult"></div>
+        </div>
+        <p id="errorMessage" class="error"></p>
+    </div>
+
+    <script>
+        let stream = null;
+        let ocrInterval = null;
+        const video = document.getElementById('video');
+        const serviceTagInput = document.getElementById('serviceTag');
+        const errorMessage = document.getElementById('errorMessage');
+        const videoContainer = document.getElementById('videoContainer');
+        const ocrResult = document.getElementById('ocrResult');
+        const startCameraBtn = document.getElementById('startCamera');
+        const stopCameraBtn = document.getElementById('stopCamera');
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                video.srcObject = stream;
+                videoContainer.style.display = 'block';
+                startCameraBtn.style.display = 'none';
+                stopCameraBtn.style.display = 'block';
+                startOCR();
+            } catch (err) {
+                errorMessage.textContent = 'Error accessing camera: ' + err.message;
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+            if (ocrInterval) {
+                clearInterval(ocrInterval);
+                ocrInterval = null;
+            }
+            videoContainer.style.display = 'none';
+            startCameraBtn.style.display = 'block';
+            stopCameraBtn.style.display = 'none';
+            ocrResult.textContent = '';
+        }
+
+        async function startOCR() {
+            const worker = await Tesseract.createWorker('eng', 1, {
+                workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/worker.min.js',
+                langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+                corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0/tesseract-core.wasm.js'
+            });
+
+            ocrInterval = setInterval(async () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    const { data: { text } } = await worker.recognize(canvas);
+                    const cleanedText = text.replace(/[^a-zA-Z0-9]/g, '').trim();
+                    
+                    if (cleanedText.length >= 7) { // Typical length of Dell Service Tag
+                        ocrResult.textContent = `Detected: ${cleanedText}`;
+                        serviceTagInput.value = cleanedText;
+                        stopCamera();
+                        await worker.terminate();
+                    } else {
+                        ocrResult.textContent = 'No valid Service Tag detected';
+                    }
+                } catch (err) {
+                    ocrResult.textContent = 'OCR error: ' + err.message;
+                }
+            }, 1000); // Run OCR every second
+        }
+
+        function lookupServiceTag() {
+            const serviceTag = serviceTagInput.value.trim();
+
+            if (!serviceTag) {
+                errorMessage.textContent = 'Please enter or scan a Service Tag or Express Service Code';
+                return;
+            }
+
+            errorMessage.textContent = '';
+            const dellSupportUrl = `https://www.dell.com/support/home/en-us/product-support/servicetag/${encodeURIComponent(serviceTag)}/overview`;
+            window.open(dellSupportUrl, '_blank');
+        }
+
+        // Allow Enter key to trigger lookup
+        serviceTagInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                lookupServiceTag();
+            }
+        });
+    </script>
+</body>
+</html>
