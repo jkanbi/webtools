@@ -152,15 +152,14 @@
         async function initializeWorker() {
             try {
                 if (!window.Tesseract) {
-                    throw new Error('Tesseract.js failed to load');
+                    throw new Error('Tesseract.js failed to load. Check network or CDN.');
                 }
                 worker = await Tesseract.createWorker('eng', 1, {
                     workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/worker.min.js',
                     langPath: 'https://tessdata.projectnaptha.com/4.0.0',
                     corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0/tesseract-core.wasm.js',
-                    logger: m => console.log(m)
+                    logger: m => console.log('Tesseract:', m)
                 });
-                // Configure Tesseract for single-line text
                 await worker.setParameters({
                     tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
                     tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE
@@ -174,7 +173,7 @@
         async function startCamera() {
             try {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error('Camera API not supported');
+                    throw new Error('Camera API not supported by this browser.');
                 }
                 stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'environment' }
@@ -223,6 +222,7 @@
             }
             if (!worker || !video.videoWidth) {
                 errorMessage.textContent = 'Scanning setup failed: Worker or video not ready';
+                console.error('Scanning setup failed: Worker or video not ready');
                 return;
             }
 
@@ -230,6 +230,7 @@
                 try {
                     if (!video.videoWidth || video.paused) {
                         ocrResult.textContent = 'Video not ready';
+                        console.warn('Video not ready for scanning');
                         return;
                     }
 
@@ -238,31 +239,35 @@
                     const videoRect = video.getBoundingClientRect();
                     const overlayRect = overlay.getBoundingClientRect();
 
-                    // Precise coordinate mapping
+                    // Get displayed video dimensions
                     const videoStyle = window.getComputedStyle(video);
-                    const videoWidth = parseFloat(videoStyle.width);
-                    const videoHeight = parseFloat(videoStyle.height);
-                    const scaleX = video.videoWidth / videoWidth;
-                    const scaleY = video.videoHeight / videoHeight;
+                    const videoDisplayedWidth = parseFloat(videoStyle.width) || videoRect.width;
+                    const videoDisplayedHeight = parseFloat(videoStyle.height) || videoRect.height;
 
-                    // Adjust for any potential offsets
-                    const videoOffsetX = videoRect.left - parseFloat(videoStyle.left || 0);
-                    const videoOffsetY = videoRect.top - parseFloat(videoStyle.top || 0);
-                    const cropX = (overlayRect.left - videoOffsetX) * scaleX;
-                    const cropY = (overlayRect.top - videoOffsetY) * scaleY;
+                    // Calculate scale factors
+                    const scaleX = video.videoWidth / videoDisplayedWidth;
+                    const scaleY = video.videoHeight / videoDisplayedHeight;
+
+                    // Calculate crop coordinates
+                    const cropX = (overlayRect.left - videoRect.left) * scaleX;
+                    const cropY = (overlayRect.top - videoRect.top) * scaleY;
                     const cropWidth = overlayRect.width * scaleX;
                     const cropHeight = overlayRect.height * scaleY;
 
-                    // Ensure crop coordinates are within video bounds
+                    // Clamp coordinates to video bounds
                     const safeCropX = Math.max(0, Math.min(cropX, video.videoWidth - 1));
                     const safeCropY = Math.max(0, Math.min(cropY, video.videoHeight - 1));
-                    const safeCropWidth = Math.min(cropWidth, video.videoWidth - safeCropX);
-                    const SAFE_CROP_HEIGHT = Math.min(cropHeight, video.videoHeight - safeCropY);
+                    const safeCropWidth = Math.max(1, Math.min(cropWidth, video.videoWidth - safeCropX));
+                    const safeCropHeight = Math.max(1, Math.min(cropHeight, video.videoHeight - safeCropY));
 
+                    // Debug coordinates
+                    console.log(`Crop Coordinates: x=${safeCropX}, y=${safeCropY}, width=${safeCropWidth}, height=${safeCropHeight}, videoWidth=${video.videoWidth}, videoHeight=${video.videoHeight}`);
+
+                    // Set canvas dimensions
                     canvas.width = safeCropWidth;
-                    canvas.height = SAFE_CROP_HEIGHT;
+                    canvas.height = safeCropHeight;
                     const ctx = canvas.getContext('2d');
-                    ctx.drawImage(video, safeCropX, safeCropY, safeCropWidth, SAFE_CROP_HEIGHT, 0, 0, safeCropWidth, SAFE_CROP_HEIGHT);
+                    ctx.drawImage(video, safeCropX, safeCropY, safeCropWidth, safeCropHeight, 0, 0, safeCropWidth, safeCropHeight);
 
                     let detectedTag = null;
                     if (window.jsQR) {
@@ -276,15 +281,16 @@
                         }
                     } else {
                         console.warn('jsQR not loaded');
+                        errorMessage.textContent = 'QR code detection unavailable';
                     }
 
-                    if (!detectedTag) {
+                    if (!detectedTag && worker) {
                         const { data } = await worker.recognize(canvas);
                         const lines = data.lines
-                            .filter(line => line.confidence > 80) // High-confidence lines only
+                            .filter(line => line.confidence > 80)
                             .map(line => line.text.replace(/[^a-zA-Z0-9]/g, '').trim())
                             .filter(text => text.match(/[a-zA-Z0-9]{7,}/));
-                        detectedTag = lines[0] || null; // Take the first valid line
+                        detectedTag = lines[0] || null;
                     }
 
                     if (detectedTag) {
@@ -297,9 +303,7 @@
                     }
                 } catch (err) {
                     ocrResult.textContent = 'Scanning error: ' + err.message;
-                    console
-
-.error('Scanning error:', err);
+                    console.error('Scanning error:', err);
                 }
             }, 1000);
         }
@@ -329,9 +333,13 @@
         });
 
         window.addEventListener('load', () => {
-            if (!window.Tesseract || !window.jsQR) {
-                errorMessage.textContent = 'Failed to load required libraries (Tesseract.js or jsQR)';
-                console.error('Dependency load failure');
+            if (!window.Tesseract) {
+                errorMessage.textContent = 'Failed to load Tesseract.js library';
+                console.error('Tesseract.js load failure');
+            }
+            if (!window.jsQR) {
+                errorMessage.textContent = 'Failed to load jsQR library';
+                console.error('jsQR load failure');
             }
         });
     </script>
