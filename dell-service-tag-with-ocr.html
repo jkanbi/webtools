@@ -74,10 +74,10 @@
         }
         #ocrOverlay {
             position: absolute;
-            top: 25%;
+            top: 35%;
             left: 25%;
             width: 50%;
-            height: 50%;
+            height: 30%;
             border: 2px solid #00ff00;
             box-sizing: border-box;
             pointer-events: none;
@@ -112,10 +112,10 @@
                 padding: 10px;
             }
             #ocrOverlay {
-                top: 20%;
+                top: 30%;
                 left: 20%;
                 width: 60%;
-                height: 60%;
+                height: 40%;
             }
         }
     </style>
@@ -158,7 +158,7 @@
                     workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/worker.min.js',
                     langPath: 'https://tessdata.projectnaptha.com/4.0.0',
                     corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.0/tesseract-core.wasm.js',
-                    logger: m => console.log(m) // For debugging
+                    logger: m => console.log(m)
                 });
             } catch (err) {
                 errorMessage.textContent = 'Failed to initialize OCR: ' + err.message;
@@ -178,7 +178,6 @@
                 videoContainer.style.display = 'block';
                 startCameraBtn.style.display = 'none';
                 stopCameraBtn.style.display = 'block';
-                // Wait for video to be ready
                 video.onloadedmetadata = () => {
                     video.play().catch(err => {
                         errorMessage.textContent = 'Error playing video: ' + err.message;
@@ -229,13 +228,11 @@
                         return;
                     }
 
-                    // Create canvas for the highlighted region
                     const canvas = document.createElement('canvas');
                     const overlay = document.getElementById('ocrOverlay');
                     const videoRect = video.getBoundingClientRect();
                     const overlayRect = overlay.getBoundingClientRect();
 
-                    // Calculate the highlighted region in video coordinates
                     const scaleX = video.videoWidth / videoRect.width;
                     const scaleY = video.videoHeight / videoRect.height;
                     const cropX = (overlayRect.left - videoRect.left) * scaleX;
@@ -248,7 +245,6 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
-                    // QR code detection
                     let detectedTag = null;
                     if (window.jsQR) {
                         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -263,7 +259,6 @@
                         console.warn('jsQR not loaded');
                     }
 
-                    // OCR if no QR code detected
                     if (!detectedTag) {
                         const { data: { text } } = await worker.recognize(canvas);
                         const cleanedText = text.replace(/[^a-zA-Z0-9]/g, '').trim();
@@ -276,10 +271,9 @@
                         ocrResult.textContent = `Detected: ${detectedTag}`;
                         serviceTagInput.value = detectedTag;
                         okButton.style.display = 'block';
-                        clearInterval(scanInterval);
-                        scanInterval = null;
                     } else {
                         ocrResult.textContent = 'No valid Service Tag or QR code detected';
+                        okButton.style.display = 'none';
                     }
                 } catch (err) {
                     ocrResult.textContent = 'Scanning error: ' + err.message;
@@ -306,14 +300,12 @@
             window.open(dellSupportUrl, '_blank');
         }
 
-        // Allow Enter key to trigger lookup for manual input
         serviceTagInput.addEventListener('keypress', function(event) {
             if (event.key === 'Enter') {
                 lookupServiceTag();
             }
         });
 
-        // Check for dependency loading
         window.addEventListener('load', () => {
             if (!window.Tesseract || !window.jsQR) {
                 errorMessage.textContent = 'Failed to load required libraries (Tesseract.js or jsQR)';
