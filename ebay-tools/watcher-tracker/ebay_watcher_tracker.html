@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eBay Watcher Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background: #f5f5f5;
+    }
+    h1 {
+      text-align: center;
+    }
+    .input-group {
+      margin-bottom: 1rem;
+    }
+    input[type="text"], input[type="file"] {
+      padding: 0.5rem;
+      margin-right: 0.5rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      margin-right: 0.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+      text-align: left;
+    }
+    .changed {
+      background-color: #fffa8b;
+    }
+    .increase {
+      background-color: #c8f7c5;
+    }
+    .decrease {
+      background-color: #f7c5c5;
+    }
+  </style>
+</head>
+<body>
+  <h1>eBay Watcher Tracker</h1>
+  <div class="input-group">
+    <input id="itemInput" type="text" placeholder="Enter eBay Item Number" />
+    <button onclick="addItem()">Add Item</button>
+    <input type="file" id="importCSV" accept=".csv" onchange="importCSV(event)" />
+    <button onclick="exportCSV()">Export CSV</button>
+    <button onclick="downloadTemplate()">Download CSV Template</button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Item ID</th>
+        <th>Current Watchers</th>
+        <th>Last Checked</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="itemTable"></tbody>
+  </table>
+
+  <script>
+    const items = {}; // Stores item ID and last known watcher count
+
+    async function fetchWatchers(itemId) {
+      const mockWatchers = Math.floor(Math.random() * 10); // Simulated data
+      return mockWatchers;
+    }
+
+    async function checkItem(itemId) {
+      const newWatchers = await fetchWatchers(itemId);
+      const now = new Date().toLocaleString();
+      const table = document.getElementById("itemTable");
+
+      const previousWatchers = items[itemId] ? items[itemId].watchers : null;
+      const changed = previousWatchers !== null && previousWatchers !== newWatchers;
+      const status = changed
+        ? newWatchers > previousWatchers ? "Increased" : "Decreased"
+        : "No Change";
+
+      items[itemId] = { watchers: newWatchers, last: now };
+
+      let row = document.getElementById(`row-${itemId}`);
+      if (!row) {
+        row = document.createElement("tr");
+        row.id = `row-${itemId}`;
+        row.innerHTML = `
+          <td>${itemId}</td>
+          <td class="watchers"></td>
+          <td class="last"></td>
+          <td class="status"></td>
+        `;
+        table.appendChild(row);
+      }
+
+      row.querySelector(".watchers").textContent = newWatchers;
+      row.querySelector(".last").textContent = now;
+      row.querySelector(".status").textContent = status;
+
+      row.classList.remove("increase", "decrease", "changed");
+      if (changed) {
+        row.classList.add("changed");
+        if (newWatchers > previousWatchers) row.classList.add("increase");
+        if (newWatchers < previousWatchers) row.classList.add("decrease");
+      }
+    }
+
+    function addItem() {
+      const input = document.getElementById("itemInput");
+      const itemId = input.value.trim();
+      if (!itemId || items[itemId]) return;
+      checkItem(itemId);
+      input.value = "";
+    }
+
+    function importCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const lines = e.target.result.split(/\r?\n/);
+        lines.forEach(line => {
+          const [itemId, storedWatchers, lastChecked] = line.split(",");
+          if (!itemId || items[itemId]) return;
+          items[itemId] = { watchers: parseInt(storedWatchers, 10) || 0, last: lastChecked || "" };
+          checkItem(itemId);
+        });
+      };
+      reader.readAsText(file);
+    }
+
+    function exportCSV() {
+      const header = "itemId,watchers,lastChecked";
+      const rows = Object.entries(items).map(([id, data]) => `${id},${data.watchers},${data.last}`);
+      const csv = [header, ...rows].join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "ebay_items.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadTemplate() {
+      const csv = "itemId,watchers,lastChecked\n";
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "template.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    setInterval(() => {
+      Object.keys(items).forEach(checkItem);
+    }, 60000); // Refresh every 60 seconds
+  </script>
+</body>
+</html>
