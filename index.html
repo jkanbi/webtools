@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebTools - Collection of Useful Web Tools</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #333 0%, #666 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .section:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .section h2 {
+            color: #333;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            text-align: center;
+            border-bottom: 3px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .tool-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #333;
+            transition: all 0.3s ease;
+        }
+
+        .tool-card:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+            border-left-color: #666;
+        }
+
+        .tool-card h3 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        .tool-card p {
+            color: #6c757d;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .tool-link {
+            display: inline-block;
+            background: linear-gradient(45deg, #333, #666);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .tool-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .search-container {
+                margin: 16px auto 24px auto;
+                padding: 0 15px;
+            }
+            
+            .search-box {
+                padding: 12px 16px;
+                font-size: 16px;
+                min-height: 44px;
+            }
+            
+            .tools-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .section {
+                padding: 20px;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+
+        .misc-icon, .image-icon, .dell-icon {
+            display: inline-block;
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        
+        .search-container {
+            text-align: center;
+            margin: 20px auto 30px auto;
+            max-width: 500px;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e3eaf1;
+            border-radius: 25px;
+            font-size: 16px;
+            background: #fff;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        
+        .search-box:focus {
+            border-color: #333;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+        }
+        
+        .search-box::placeholder {
+            color: #999;
+        }
+        
+        .no-results {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            margin: 40px 0;
+            font-size: 18px;
+        }
+        
+        .section.hidden {
+            display: none;
+        }
+        
+        .tool-card.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛠️ WebTools</h1>
+            <p>A collection of useful web-based tools for everyday tasks</p>
+        </div>
+
+        <div class="search-container">
+            <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search tools by name or description..." autocomplete="off">
+        </div>
+
+        <div class="tools-grid">
+            <div class="section">
+                <h2><span class="misc-icon">🔧</span>Misc Tools</h2>
+                
+                <div class="tool-card">
+                    <h3>Time Stamp Converter</h3>
+                    <p>Convert between different timestamp formats easily. Perfect for developers and system administrators.</p>
+                    <a href="misc-tools/timestamp-converter.html" class="tool-link">Open Tool</a>
+                </div>
+
+                <div class="tool-card">
+                    <h3>Case Converter</h3>
+                    <p>Transform text between different cases: UPPERCASE, lowercase, Title Case, and more.</p>
+                    <a href="misc-tools/case-converter.html" class="tool-link">Open Tool</a>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2><span class="image-icon">🖼️</span>Image Tools</h2>
+                
+                <div class="tool-card">
+                    <h3>Image Resizer</h3>
+                    <p>Resize multiple images at once with drag & drop functionality. Support for various formats.</p>
+                    <a href="image-tools/image-resizer.html" class="tool-link">Open Tool</a>
+                </div>
+
+                <div class="tool-card">
+                    <h3>Image Labeller</h3>
+                    <p>Add labels and annotations to images with an intuitive interface.</p>
+                    <a href="image-tools/image-labeller.html" class="tool-link">Open Tool</a>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2><span class="dell-icon">💻</span>Dell Tools</h2>
+                
+                <div class="tool-card">
+                    <h3>Dell Service Tag OCR</h3>
+                    <p>Extract Dell service tag information from images using OCR technology.</p>
+                    <a href="dell-tools/dell-service-tag-with-ocr.html" class="tool-link">Open Tool</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="no-results" id="noResults" style="display: none;">
+            <p>🔍 No tools found matching "<span id="searchTerm"></span>"</p>
+            <p>Try a different search term or browse all tools below.</p>
+        </div>
+
+        <div class="footer">
+            <p>&copy; 2024 WebTools. All tools are free to use and open source.</p>
+        </div>
+    </div>
+
+    <script>
+        // Search functionality
+        const searchBox = document.getElementById('searchBox');
+        const toolCards = document.querySelectorAll('.tool-card');
+        const sections = document.querySelectorAll('.section');
+        const noResults = document.getElementById('noResults');
+        const searchTerm = document.getElementById('searchTerm');
+
+        function filterTools(searchValue) {
+            const query = searchValue.toLowerCase().trim();
+            let hasResults = false;
+            let visibleSections = 0;
+
+            // Hide all tool cards first
+            toolCards.forEach(card => {
+                card.classList.add('hidden');
+            });
+
+            // Filter tool cards based on search query
+            toolCards.forEach(card => {
+                const title = card.querySelector('h3').textContent.toLowerCase();
+                const description = card.querySelector('p').textContent.toLowerCase();
+                
+                if (title.includes(query) || description.includes(query)) {
+                    card.classList.remove('hidden');
+                    hasResults = true;
+                }
+            });
+
+            // Show/hide sections based on whether they have visible tools
+            sections.forEach(section => {
+                const visibleTools = section.querySelectorAll('.tool-card:not(.hidden)');
+                if (visibleTools.length > 0) {
+                    section.classList.remove('hidden');
+                    visibleSections++;
+                } else {
+                    section.classList.add('hidden');
+                }
+            });
+
+            // Show/hide no results message
+            if (!hasResults && query !== '') {
+                noResults.style.display = 'block';
+                searchTerm.textContent = query;
+            } else {
+                noResults.style.display = 'none';
+            }
+
+            // If no search query, show all tools
+            if (query === '') {
+                toolCards.forEach(card => card.classList.remove('hidden'));
+                sections.forEach(section => section.classList.remove('hidden'));
+                noResults.style.display = 'none';
+            }
+        }
+
+        // Add event listeners
+        searchBox.addEventListener('input', function() {
+            filterTools(this.value);
+        });
+
+        searchBox.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                this.value = '';
+                filterTools('');
+                this.blur();
+            }
+        });
+
+        // Clear search when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-container') && !e.target.closest('.tools-grid')) {
+                searchBox.value = '';
+                filterTools('');
+            }
+        });
+    </script>
+</body>
+</html>
