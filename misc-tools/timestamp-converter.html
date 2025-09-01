@@ -15,9 +15,6 @@
         body {
             background-color: #f5f5f5;
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             padding: 20px;
         }
 
@@ -28,12 +25,45 @@
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             padding: 30px;
+            margin: 0 auto;
         }
 
+        .header-container {
+            position: relative;
+            text-align: center;
+            margin: 20px auto 30px auto;
+            max-width: 800px;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #back-btn {
+            position: relative;
+            left: auto;
+            top: auto;
+            transform: none;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px;
+            touch-action: manipulation;
+            margin-bottom: 16px;
+            width: fit-content;
+        }
+        
         h1 {
             text-align: center;
             color: #333;
-            margin-bottom: 30px;
+            margin-bottom: 0;
             font-size: 2.5rem;
         }
 
@@ -89,6 +119,42 @@
         .datetime-inputs input:focus {
             outline: none;
             border-color: #4a90e2;
+        }
+        
+        @media (max-width: 768px) {
+            .header-container {
+                margin: 10px auto 20px auto;
+                padding: 0 15px;
+            }
+            
+            #back-btn {
+                position: relative;
+                left: auto;
+                top: auto;
+                transform: none;
+                margin-bottom: 16px;
+                width: 100%;
+                max-width: 200px;
+                justify-content: center;
+            }
+            
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .datetime-inputs {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .datetime-inputs input {
+                width: 100%;
+            }
         }
 
         label {
@@ -157,8 +223,11 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="header-container">
+        <button id="back-btn">← Back</button>
         <h1>UNIX Timestamp Converter</h1>
+    </div>
+    <div class="container">
         <div class="converter-box">
             <div class="current-timestamp">
                 <h2>Current Timestamp</h2>
@@ -284,6 +353,11 @@
         // Initialize and update timestamp every second
         updateCurrentTimestamp();
         setInterval(updateCurrentTimestamp, 1000);
+        
+        // Add back button functionality
+        document.getElementById('back-btn').addEventListener('click', function() {
+            window.location.href = '../index.html';
+        });
     </script>
 </body>
 </html> 
