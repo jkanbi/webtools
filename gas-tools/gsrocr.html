@@ -33,6 +33,73 @@
             color: white;
             padding: 30px;
             text-align: center;
+            position: relative;
+        }
+        
+        #back-btn {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px;
+            touch-action: manipulation;
+            backdrop-filter: blur(10px);
+        }
+        
+        #back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        @media (max-width: 768px) {
+            #back-btn {
+                position: relative;
+                left: auto;
+                top: auto;
+                transform: none;
+                margin-bottom: 16px;
+                width: 100%;
+                max-width: 200px;
+                justify-content: center;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .camera-section {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .input-group {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .header h1 {
@@ -332,6 +399,7 @@
 <body>
     <div class="container">
         <div class="header">
+            <button id="back-btn">← Back</button>
             <h1>Real-Time Gas Rate Calculator</h1>
             <p>Live camera capture with continuous OCR and gas rate calculation</p>
         </div>
@@ -656,6 +724,11 @@
                     stopCamera(2);
                     startCamera(2);
                 }
+            });
+            
+            // Add back button functionality
+            document.getElementById('back-btn').addEventListener('click', function() {
+                window.location.href = 'index.html';
             });
         });
     </script>
