@@ -31,10 +31,10 @@
     }
     
     #back-btn {
-      position: absolute;
-      left: 20px;
-      top: 50%;
-      transform: translateY(-50%);
+      position: relative;
+      left: auto;
+      top: auto;
+      transform: none;
       background: #333;
       color: white;
       border: none;
@@ -47,6 +47,8 @@
       gap: 8px;
       min-height: 44px;
       touch-action: manipulation;
+      margin-bottom: 16px;
+      width: fit-content;
     }
     
     h1 {
@@ -55,7 +57,7 @@
       color: #2d3a4b;
       letter-spacing: 1px;
       font-size: clamp(1.5rem, 5vw, 2.5rem);
-      padding: 0 60px;
+      padding: 0;
     }
     #drop-area {
       border: 2.5px dashed #7db7e8;
