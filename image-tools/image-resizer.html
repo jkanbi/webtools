@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Multi-Image Drag & Drop Resizer</title>
   <style>
     body {
@@ -10,24 +11,68 @@
       background: #f4f8fb;
       min-height: 100vh;
     }
+    .header-container {
+      position: relative;
+      text-align: center;
+      margin: 20px auto 20px auto;
+      max-width: 800px;
+      padding: 0 20px;
+    }
+    
+    .header-container {
+      position: relative;
+      text-align: center;
+      margin: 20px auto 30px auto;
+      max-width: 800px;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    #back-btn {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #333;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      touch-action: manipulation;
+    }
+    
     h1 {
       text-align: center;
-      margin-top: 32px;
+      margin: 0;
       color: #2d3a4b;
       letter-spacing: 1px;
+      font-size: clamp(1.5rem, 5vw, 2.5rem);
+      padding: 0 60px;
     }
     #drop-area {
       border: 2.5px dashed #7db7e8;
       border-radius: 16px;
       width: 90%;
       max-width: 520px;
-      margin: 32px auto 16px auto;
-      padding: 36px 24px;
+      margin: 20px auto 16px auto;
+      padding: 24px 16px;
       text-align: center;
       background: #fff;
       cursor: pointer;
       box-shadow: 0 4px 16px rgba(125,183,232,0.08);
       transition: background 0.2s, box-shadow 0.2s;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     #drop-area.highlight {
       background: #eaf6ff;
@@ -44,17 +89,27 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
       flex-wrap: wrap;
+      padding: 0 16px;
     }
     #resize-percent, #format-select {
-      padding: 7px 16px;
-      border-radius: 6px;
+      padding: 12px 16px;
+      border-radius: 8px;
       border: 1.5px solid #b3c6d9;
       background: #fafdff;
       font-size: 16px;
       margin: 0 4px;
       transition: border 0.2s;
+      min-width: 80px;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 12px auto;
+      padding-right: 30px;
     }
     #resize-percent:focus, #format-select:focus {
       border: 1.5px solid #7db7e8;
@@ -64,12 +119,14 @@
       background: #f44336;
       color: #fff;
       border: none;
-      border-radius: 6px;
-      padding: 8px 20px;
+      border-radius: 8px;
+      padding: 12px 24px;
       font-size: 16px;
       cursor: pointer;
       transition: background 0.2s, box-shadow 0.2s;
       box-shadow: 0 2px 8px rgba(244,67,54,0.08);
+      min-height: 44px;
+      touch-action: manipulation;
     }
     #reset-btn:hover {
       background: #d32f2f;
@@ -82,6 +139,7 @@
       background: #fff;
       box-shadow: 0 2px 12px rgba(44,62,80,0.06);
       max-width: 340px;
+      width: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -96,15 +154,19 @@
     }
     .download-btn {
       margin: 5px;
-      padding: 7px 18px;
-      font-size: 15px;
+      padding: 12px 24px;
+      font-size: 16px;
       background: #2196f3;
       color: #fff;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       transition: background 0.2s, box-shadow 0.2s;
       box-shadow: 0 2px 8px rgba(33,150,243,0.08);
+      min-height: 44px;
+      touch-action: manipulation;
+      width: 100%;
+      max-width: 200px;
     }
     .download-btn:hover {
       background: #1769aa;
@@ -117,21 +179,104 @@
       gap: 18px;
       min-height: 40px;
     }
-    @media (max-width: 600px) {
-      #drop-area, #preview-container {
-        width: 98%;
-        padding: 12px;
+    @media (max-width: 768px) {
+      .header-container {
+        margin: 16px auto 16px auto;
+        padding: 0 15px;
       }
+      
+      #back-btn {
+        position: relative;
+        left: auto;
+        top: auto;
+        transform: none;
+        margin-bottom: 16px;
+        width: 100%;
+        max-width: 200px;
+        justify-content: center;
+      }
+      
+      #drop-area {
+        width: 95%;
+        padding: 20px 12px;
+        margin: 16px auto 12px auto;
+      }
+      
+      #preview-container {
+        width: 95%;
+        padding: 0 12px;
+      }
+      
+      .button-row {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+      }
+      
+      #resize-percent, #format-select {
+        width: 100%;
+        max-width: 200px;
+        margin: 0 auto;
+      }
+      
+      #reset-btn {
+        width: 100%;
+        max-width: 200px;
+        margin: 0 auto;
+      }
+      
       .image-item {
-        max-width: 98vw;
+        max-width: 100%;
+        margin: 12px auto;
+        padding: 16px 8px 12px 8px;
+      }
+      
+      .image-item img {
+        max-height: 150px;
+      }
+      
+      .download-btn {
+        max-width: 100%;
+        margin: 8px 0;
+      }
+      
+      h1 {
+        margin-top: 16px;
+        margin-bottom: 16px;
+        font-size: 1.8rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      #drop-area {
+        width: 98%;
+        padding: 16px 8px;
+      }
+      
+      .button-row {
+        gap: 12px;
+      }
+      
+      .image-item {
+        padding: 12px 6px 8px 6px;
+      }
+      
+      .image-item img {
+        max-height: 120px;
       }
     }
   </style>
 </head>
 <body>
-  <h1>Multi-Image Drag & Drop Resizer</h1>
+  <div class="header-container">
+    <button id="back-btn">← Back</button>
+    <h1>Multi-Image Drag & Drop Resizer</h1>
+  </div>
   <div id="drop-area">
-    <p>Drag & drop images here or <u>click to select</u></p>
+    <div>
+      <p style="margin: 0 0 8px 0; font-size: 16px;">📱 <strong>Tap to select images</strong></p>
+      <p style="margin: 0; font-size: 14px; color: #666;">or drag & drop on desktop</p>
+    </div>
     <input type="file" id="file-input" accept="image/*" multiple>
   </div>
   <div id="preview-container">
@@ -188,8 +333,20 @@
     });
 
     // Make drop area clickable for file selection
-    dropArea.addEventListener('click', function() {
-      fileInput.click();
+    dropArea.addEventListener('click', function(e) {
+      // Prevent triggering on child elements
+      if (e.target === dropArea || e.target.parentElement === dropArea) {
+        fileInput.click();
+      }
+    });
+    
+    // Add touch feedback
+    dropArea.addEventListener('touchstart', function() {
+      dropArea.style.transform = 'scale(0.98)';
+    });
+    
+    dropArea.addEventListener('touchend', function() {
+      dropArea.style.transform = 'scale(1)';
     });
 
     // Process files
@@ -282,6 +439,12 @@
       currentImages = [];
       fileInput.value = '';
     });
+    
+            // Add back button functionality
+        const backBtn = document.getElementById('back-btn');
+        backBtn.addEventListener('click', function() {
+          window.location.href = '../index.html';
+        });
   </script>
 </body>
 </html>
