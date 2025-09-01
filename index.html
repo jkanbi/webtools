@@ -73,46 +73,31 @@
         .tool-card {
             background: #f8f9fa;
             border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-left: 4px solid #333;
+            padding: 12px 20px;
+            margin-bottom: 10px;
             transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
         }
 
         .tool-card:hover {
             background: #e9ecef;
             transform: translateX(5px);
-            border-left-color: #666;
         }
-
+        
         .tool-card h3 {
             color: #495057;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
             font-size: 1.2rem;
         }
 
         .tool-card p {
             color: #6c757d;
-            margin-bottom: 15px;
-            line-height: 1.5;
+            margin-bottom: 0;
+            line-height: 1.4;
         }
 
-        .tool-link {
-            display: inline-block;
-            background: linear-gradient(45deg, #333, #666);
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        }
 
-        .tool-link:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-        }
 
         .footer {
             text-align: center;
@@ -219,13 +204,11 @@
                 <div class="tool-card">
                     <h3>Time Stamp Converter</h3>
                     <p>Convert between different timestamp formats easily. Perfect for developers and system administrators.</p>
-                    <a href="misc-tools/timestamp-converter.html" class="tool-link">Open Tool</a>
                 </div>
 
                 <div class="tool-card">
                     <h3>Case Converter</h3>
                     <p>Transform text between different cases: UPPERCASE, lowercase, Title Case, and more.</p>
-                    <a href="misc-tools/case-converter.html" class="tool-link">Open Tool</a>
                 </div>
             </div>
 
@@ -235,13 +218,11 @@
                 <div class="tool-card">
                     <h3>Image Resizer</h3>
                     <p>Resize multiple images at once with drag & drop functionality. Support for various formats.</p>
-                    <a href="image-tools/image-resizer.html" class="tool-link">Open Tool</a>
                 </div>
 
                 <div class="tool-card">
                     <h3>Image Labeller</h3>
                     <p>Add labels and annotations to images with an intuitive interface.</p>
-                    <a href="image-tools/image-labeller.html" class="tool-link">Open Tool</a>
                 </div>
             </div>
 
@@ -251,7 +232,6 @@
                 <div class="tool-card">
                     <h3>Dell Service Tag OCR</h3>
                     <p>Extract Dell service tag information from images using OCR technology.</p>
-                    <a href="dell-tools/dell-service-tag-with-ocr.html" class="tool-link">Open Tool</a>
                 </div>
             </div>
         </div>
@@ -341,6 +321,37 @@
                 searchBox.value = '';
                 filterTools('');
             }
+        });
+        
+        // Make entire tool cards clickable
+        toolCards.forEach(card => {
+            card.addEventListener('click', function(e) {
+                // Get the tool URL based on the tool name
+                const toolName = card.querySelector('h3').textContent;
+                let toolUrl = '';
+                
+                switch(toolName) {
+                    case 'Time Stamp Converter':
+                        toolUrl = 'misc-tools/timestamp-converter.html';
+                        break;
+                    case 'Case Converter':
+                        toolUrl = 'misc-tools/case-converter.html';
+                        break;
+                    case 'Image Resizer':
+                        toolUrl = 'image-tools/image-resizer.html';
+                        break;
+                    case 'Image Labeller':
+                        toolUrl = 'image-tools/image-labeller.html';
+                        break;
+                    case 'Dell Service Tag OCR':
+                        toolUrl = 'dell-tools/dell-service-tag-with-ocr.html';
+                        break;
+                }
+                
+                if (toolUrl) {
+                    window.location.href = toolUrl;
+                }
+            });
         });
     </script>
 </body>
