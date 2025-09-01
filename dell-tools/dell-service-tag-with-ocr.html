@@ -18,6 +18,33 @@
             min-height: 100vh;
             touch-action: manipulation;
         }
+        
+        .header-container {
+            position: relative;
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        #back-btn {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
         .container {
             background-color: white;
             padding: 15px;
@@ -121,8 +148,11 @@
     </style>
 </head>
 <body>
+    <div class="header-container">
+        <button id="back-btn">← Back</button>
+        <h2 style="text-align: center; font-size: 18px; margin: 0;">Dell Service Tag Lookup</h2>
+    </div>
     <div class="container">
-        <h2 style="text-align: center; font-size: 18px;">Dell Service Tag Lookup</h2>
         <input type="text" id="serviceTag" placeholder="Enter Service Tag or Express Service Code">
         <button onclick="lookupServiceTag()">Lookup Support Page</button>
         <button id="startCamera" onclick="startCamera()">Start Camera Scan</button>
@@ -311,6 +341,11 @@
                 errorMessage.textContent = 'Failed to load required libraries (Tesseract.js or jsQR)';
                 console.error('Dependency load failure');
             }
+        });
+        
+        // Add back button functionality
+        document.getElementById('back-btn').addEventListener('click', function() {
+            window.location.href = '../index.html';
         });
     </script>
 </body>
