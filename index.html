@@ -136,7 +136,7 @@
             }
         }
 
-        .misc-icon, .image-icon, .dell-icon {
+        .weather-icon, .misc-icon, .image-icon, .dell-icon {
             display: inline-block;
             margin-right: 10px;
             font-size: 1.2em;
@@ -198,6 +198,15 @@
         </div>
 
         <div class="tools-grid">
+            <div class="section">
+                <h2><span class="weather-icon">🌤️</span>Weather Tools</h2>
+                
+                <div class="tool-card">
+                    <h3>Weather Forecast</h3>
+                    <p>Get current weather conditions and detailed forecasts for any location worldwide.</p>
+                </div>
+            </div>
+
             <div class="section">
                 <h2><span class="misc-icon">🔧</span>Misc Tools</h2>
                 
@@ -331,6 +340,9 @@
                 let toolUrl = '';
                 
                 switch(toolName) {
+                    case 'Weather Forecast':
+                        toolUrl = 'weather-tools/weather-forecast.html';
+                        break;
                     case 'Time Stamp Converter':
                         toolUrl = 'misc-tools/timestamp-converter.html';
                         break;
